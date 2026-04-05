@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { createLocalPipeApp } from "../src/app.js";
@@ -113,6 +113,19 @@ test("store rejects invalid hosts and disallowed target hosts", async () => {
       target: "http://127.0.0.1:41001",
     }),
     /ALLOWED_TARGET_HOSTS/,
+  );
+});
+
+test("store fails clearly when CONFIG_PATH points to a directory", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "local-pipe-"));
+  const filePath = path.join(dir, "routes.json");
+  await mkdir(filePath);
+
+  const store = new RouteStore(filePath);
+
+  await assert.rejects(
+    store.load(),
+    /CONFIG_PATH .* is a directory/,
   );
 });
 

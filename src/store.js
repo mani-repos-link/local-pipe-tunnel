@@ -175,8 +175,18 @@ export class RouteStore {
     await mkdir(path.dirname(this.filePath), { recursive: true });
 
     try {
-      await stat(this.filePath);
-    } catch {
+      const existing = await stat(this.filePath);
+
+      if (existing.isDirectory()) {
+        throw new Error(
+          `CONFIG_PATH ${this.filePath} is a directory. It must point to a JSON file. Remove the directory and restart.`,
+        );
+      }
+    } catch (error) {
+      if (error instanceof Error && !("code" in error)) {
+        throw error;
+      }
+
       await writeFile(
         this.filePath,
         `${JSON.stringify(DEFAULT_STATE, null, 2)}\n`,
