@@ -194,6 +194,7 @@ The main deploy file is [compose.yml](/Users/manpreet/Documents/project/startup/
 
 Production defaults in the compose file:
 
+- non-root runtime user via `LOCAL_PIPE_UID` and `LOCAL_PIPE_GID`
 - `init: true`
 - `cap_drop: [ALL]`
 - `security_opt: no-new-privileges:true`
@@ -203,6 +204,36 @@ Production defaults in the compose file:
 - optional defaults for SSH command generation via `DEFAULT_SSH_TARGET`, `DEFAULT_REMOTE_BIND_HOST`, and `DEFAULT_LOCAL_HOST`
 
 If you need to target a different upstream host, add it to `ALLOWED_TARGET_HOSTS` or leave the variable empty.
+
+### Container user and bind-mounted config
+
+The image now runs the Node process as a non-root user by default.
+
+- image default user: `10001:10001`
+- compose override: `LOCAL_PIPE_UID` and `LOCAL_PIPE_GID`
+
+This matters because `data/routes.json` is bind-mounted from the host. The container user must be able to write that file.
+
+If saves from the dashboard fail with a permission error, use one of these options:
+
+1. Change the host file owner to match the container user:
+
+```bash
+chown 10001:10001 data/routes.json
+```
+
+2. Or set the container user to match the existing host file owner in `.env`:
+
+```bash
+LOCAL_PIPE_UID=1000
+LOCAL_PIPE_GID=1000
+```
+
+Then restart:
+
+```bash
+docker compose up -d --build
+```
 
 ## Copy-paste setup
 

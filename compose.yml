@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: local-pipe
     restart: unless-stopped
+    user: "${LOCAL_PIPE_UID:-10001}:${LOCAL_PIPE_GID:-10001}"
     init: true
     extra_hosts:
       - "host.docker.internal:host-gateway"
