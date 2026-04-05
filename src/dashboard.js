@@ -577,9 +577,10 @@ export function renderDashboard({
 
       function shellEscape(value) {
         const raw = String(value);
+        const quote = "'";
         return /^[A-Za-z0-9_./:@=-]+$/.test(raw)
           ? raw
-          : "'" + raw.replaceAll("'", "'\"'\"'") + "'";
+          : quote + raw.split(quote).join(quote + '"' + quote + '"' + quote) + quote;
       }
 
       function buildSshCommand(route) {
