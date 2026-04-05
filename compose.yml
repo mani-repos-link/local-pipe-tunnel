@@ -27,7 +27,7 @@ services:
       DEFAULT_REMOTE_BIND_HOST: "${DEFAULT_REMOTE_BIND_HOST:-}"
       DEFAULT_LOCAL_HOST: "${DEFAULT_LOCAL_HOST:-127.0.0.1}"
     volumes:
-      - ./data/routes.json:/app/data/routes.json
+      - ./data:/app/data
     labels:
       traefik.enable: "true"
       traefik.docker.network: "traefik"

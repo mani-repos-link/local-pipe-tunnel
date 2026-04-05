@@ -213,14 +213,14 @@ The image now runs the Node process as a non-root user by default.
 - image default user: `10001:10001`
 - compose override: `LOCAL_PIPE_UID` and `LOCAL_PIPE_GID`
 
-This matters because `data/routes.json` is bind-mounted from the host. The container user must be able to write that file.
+This matters because the `data` directory is bind-mounted from the host, and `routes.json` is written inside it. The container user must be able to write that directory.
 
 If saves from the dashboard fail with a permission error, use one of these options:
 
 1. Change the host file owner to match the container user:
 
 ```bash
-chown 10001:10001 data/routes.json
+chown -R 10001:10001 data
 ```
 
 2. Or set the container user to match the existing host file owner in `.env`:
@@ -242,7 +242,6 @@ docker compose up -d --build
 
 ```bash
 cp .env.example .env
-cp data/routes.example.json data/routes.json
 npm run hash-password -- 'replace-this-with-a-strong-password'
 ```
 
@@ -250,6 +249,14 @@ Put the generated hash into `.env`, then start the service:
 
 ```bash
 docker compose up -d --build
+```
+
+If `data/routes.json` does not exist yet, `local-pipe` creates it automatically on first start.
+
+If you want the sample route instead of an empty config, copy it explicitly before startup:
+
+```bash
+cp data/routes.example.json data/routes.json
 ```
 
 ### 2. In DNS
