@@ -1,0 +1,15 @@
+{
+  "name": "local-pipe",
+  "version": "0.1.0",
+  "description": "Small dashboard and host-based reverse proxy for SSH-backed localhost tunnels.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "hash-password": "node scripts/hash-password.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

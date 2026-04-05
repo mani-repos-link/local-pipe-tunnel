@@ -1,0 +1,53 @@
+services:
+  local-pipe:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: local-pipe
+    restart: unless-stopped
+    init: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    environment:
+      PORT: "8080"
+      ADMIN_HOST: "${ADMIN_HOST:-local-pipe.example.com}"
+      CONFIG_PATH: "/app/data/routes.json"
+      ADMIN_USERNAME: "${ADMIN_USERNAME:-admin}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-replace-this}"
+      ADMIN_RATE_LIMIT_MAX: "${ADMIN_RATE_LIMIT_MAX:-60}"
+      ADMIN_RATE_LIMIT_WINDOW_MS: "${ADMIN_RATE_LIMIT_WINDOW_MS:-60000}"
+      ALLOWED_TARGET_HOSTS: "${ALLOWED_TARGET_HOSTS:-host.docker.internal,127.0.0.1,localhost}"
+      MAX_ROUTES: "${MAX_ROUTES:-250}"
+      DEFAULT_SSH_TARGET: "${DEFAULT_SSH_TARGET:-}"
+      DEFAULT_REMOTE_BIND_HOST: "${DEFAULT_REMOTE_BIND_HOST:-}"
+      DEFAULT_LOCAL_HOST: "${DEFAULT_LOCAL_HOST:-127.0.0.1}"
+    volumes:
+      - ./data/routes.json:/app/data/routes.json
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "traefik"
+
+      traefik.http.routers.local-pipe-dashboard.rule: "Host(`${ADMIN_HOST:-local-pipe.example.com}`)"
+      traefik.http.routers.local-pipe-dashboard.entrypoints: "websecure"
+      traefik.http.routers.local-pipe-dashboard.tls: "true"
+      traefik.http.routers.local-pipe-dashboard.tls.certresolver: "letsencrypt"
+      traefik.http.routers.local-pipe-dashboard.service: "local-pipe"
+
+      traefik.http.routers.local-pipe-stripe.rule: "Host(`stripe.${ADMIN_HOST:-local-pipe.example.com}`)"
+      traefik.http.routers.local-pipe-stripe.entrypoints: "websecure"
+      traefik.http.routers.local-pipe-stripe.tls: "true"
+      traefik.http.routers.local-pipe-stripe.tls.certresolver: "letsencrypt"
+      traefik.http.routers.local-pipe-stripe.service: "local-pipe"
+
+      traefik.http.services.local-pipe.loadbalancer.server.port: "8080"
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true
+    name: traefik

@@ -1,0 +1,16 @@
+{
+  "routes": [
+    {
+      "id": "stripe-example",
+      "host": "stripe.local-pipe.example.com",
+      "target": "http://host.docker.internal:41001",
+      "enabled": true,
+      "notes": "SSH reverse forward from localhost:3000",
+      "sshTarget": "tunnel@example-vps",
+      "localHost": "127.0.0.1",
+      "localPort": 3000,
+      "createdAt": "2026-04-05T00:00:00.000Z",
+      "updatedAt": "2026-04-05T00:00:00.000Z"
+    }
+  ]
+}
