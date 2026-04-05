@@ -14,7 +14,7 @@ services:
     cap_drop:
       - ALL
     environment:
-      PORT: "8080"
+      PORT: "${PORT:-8030}"
       ADMIN_HOST: "${ADMIN_HOST:-local-pipe.example.com}"
       CONFIG_PATH: "/app/data/routes.json"
       ADMIN_USERNAME: "${ADMIN_USERNAME:-admin}"
@@ -44,7 +44,7 @@ services:
       traefik.http.routers.local-pipe-stripe.tls.certresolver: "letsencrypt"
       traefik.http.routers.local-pipe-stripe.service: "local-pipe"
 
-      traefik.http.services.local-pipe.loadbalancer.server.port: "8080"
+      traefik.http.services.local-pipe.loadbalancer.server.port: "${PORT:-8030}"
     networks:
       - traefik
 

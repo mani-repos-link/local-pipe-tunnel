@@ -195,6 +195,7 @@ The main deploy file is [compose.yml](/Users/manpreet/Documents/project/startup/
 Production defaults in the compose file:
 
 - non-root runtime user via `LOCAL_PIPE_UID` and `LOCAL_PIPE_GID`
+- internal app port is configurable through `PORT`, and the Traefik service label follows the same value
 - `init: true`
 - `cap_drop: [ALL]`
 - `security_opt: no-new-privileges:true`

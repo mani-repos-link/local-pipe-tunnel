@@ -90,7 +90,7 @@ async function detectRemoteBindHost(logger) {
 }
 
 async function main() {
-  const port = parseInteger("PORT", 8080);
+  const port = parseInteger("PORT", 8030);
   const adminHost = (process.env.ADMIN_HOST || "local-pipe.example.com")
     .trim()
     .toLowerCase();
