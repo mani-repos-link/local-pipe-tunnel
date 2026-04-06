@@ -125,10 +125,6 @@ function normalizePort(value, fieldName, { required = false } = {}) {
 function normalizeTunnelFields(input, defaults = {}) {
   return {
     sshTarget: normalizeCommandToken(input?.sshTarget, "SSH target"),
-    remoteBindHost: normalizeCommandToken(
-      input?.remoteBindHost || defaults.remoteBindHost,
-      "Remote bind host",
-    ),
     localHost: normalizeCommandToken(
       input?.localHost || defaults.localHost,
       "Local host",

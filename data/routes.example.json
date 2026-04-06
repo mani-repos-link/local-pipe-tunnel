@@ -3,7 +3,7 @@
     {
       "id": "stripe-example",
       "host": "stripe.local-pipe.example.com",
-      "target": "http://host.docker.internal:41001",
+      "target": "http://127.0.0.1:41001",
       "enabled": true,
       "notes": "SSH reverse forward from localhost:3000",
       "sshTarget": "tunnel@example-vps",

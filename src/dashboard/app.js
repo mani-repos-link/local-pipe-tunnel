@@ -25,7 +25,6 @@ const refs = {
   notes: document.getElementById("route-notes"),
   sshTarget: document.getElementById("route-ssh-target"),
   localPort: document.getElementById("route-local-port"),
-  remoteBindHost: document.getElementById("route-remote-bind-host"),
   localHost: document.getElementById("route-local-host"),
   sshPreview: document.getElementById("ssh-preview"),
   enabledInput: document.getElementById("route-enabled"),
@@ -77,8 +76,7 @@ function targetPortFromRoute(route) {
 function getTunnelConfig(route) {
   return {
     sshTarget: route.sshTarget || state.sshDefaults.sshTarget || "",
-    remoteBindHost:
-      route.remoteBindHost || state.sshDefaults.remoteBindHost || "",
+    remoteBindHost: state.sshDefaults.remoteBindHost || "",
     localHost: route.localHost || state.sshDefaults.localHost || "127.0.0.1",
     localPort: route.localPort ? Number(route.localPort) : null,
     remotePort: targetPortFromRoute(route),
@@ -220,7 +218,6 @@ function resetForm() {
   refs.id.value = "";
   refs.enabledInput.checked = true;
   refs.sshTarget.value = state.sshDefaults.sshTarget || "";
-  refs.remoteBindHost.value = state.sshDefaults.remoteBindHost || "";
   refs.localHost.value = state.sshDefaults.localHost || "127.0.0.1";
   refs.localPort.value = "";
   refs.submitButton.textContent = "Save route";
@@ -232,7 +229,6 @@ function draftRoute() {
     host: refs.host.value.trim(),
     target: refs.target.value.trim(),
     sshTarget: refs.sshTarget.value.trim(),
-    remoteBindHost: refs.remoteBindHost.value.trim(),
     localHost: refs.localHost.value.trim(),
     localPort: refs.localPort.value ? Number(refs.localPort.value) : null,
   };
@@ -300,7 +296,6 @@ refs.form.addEventListener("submit", async (event) => {
         localPort: refs.localPort.value
           ? Number(refs.localPort.value)
           : undefined,
-        remoteBindHost: refs.remoteBindHost.value,
         localHost: refs.localHost.value,
         enabled: refs.enabledInput.checked,
       }),
@@ -345,8 +340,6 @@ refs.body.addEventListener("click", async (event) => {
     refs.notes.value = route.notes;
     refs.sshTarget.value =
       route.sshTarget || state.sshDefaults.sshTarget || "";
-    refs.remoteBindHost.value =
-      route.remoteBindHost || state.sshDefaults.remoteBindHost || "";
     refs.localHost.value =
       route.localHost || state.sshDefaults.localHost || "127.0.0.1";
     refs.localPort.value = route.localPort || "";
@@ -397,7 +390,6 @@ for (const input of [
   refs.target,
   refs.sshTarget,
   refs.localPort,
-  refs.remoteBindHost,
   refs.localHost,
 ]) {
   input.addEventListener("input", updatePreview);

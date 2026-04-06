@@ -71,10 +71,9 @@ test("store persists routes to disk", async () => {
   await store.load();
   await store.upsertRoute({
     host: "stripe.local-pipe.example.com",
-    target: "host.docker.internal:41001",
+    target: "127.0.0.1:41001",
     notes: "test route",
     sshTarget: "tunnel@example-vps",
-    remoteBindHost: "172.17.0.1",
     localHost: "127.0.0.1",
     localPort: 3000,
     enabled: true,
@@ -83,9 +82,8 @@ test("store persists routes to disk", async () => {
   const raw = JSON.parse(await readFile(filePath, "utf8"));
   assert.equal(raw.routes.length, 1);
   assert.equal(raw.routes[0].host, "stripe.local-pipe.example.com");
-  assert.equal(raw.routes[0].target, "http://host.docker.internal:41001");
+  assert.equal(raw.routes[0].target, "http://127.0.0.1:41001");
   assert.equal(raw.routes[0].sshTarget, "tunnel@example-vps");
-  assert.equal(raw.routes[0].remoteBindHost, "172.17.0.1");
   assert.equal(raw.routes[0].localHost, "127.0.0.1");
   assert.equal(raw.routes[0].localPort, 3000);
 });
@@ -94,7 +92,7 @@ test("store rejects invalid hosts and disallowed target hosts", async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "local-pipe-"));
   const filePath = path.join(dir, "routes.json");
   const store = new RouteStore(filePath, {
-    allowedTargetHosts: ["host.docker.internal"],
+    allowedTargetHosts: ["127.0.0.1"],
   });
 
   await store.load();
@@ -102,7 +100,7 @@ test("store rejects invalid hosts and disallowed target hosts", async () => {
   await assert.rejects(
     store.upsertRoute({
       host: "bad_host",
-      target: "http://host.docker.internal:41001",
+      target: "http://127.0.0.1:41001",
     }),
     /valid lowercase DNS name/,
   );
@@ -110,7 +108,7 @@ test("store rejects invalid hosts and disallowed target hosts", async () => {
   await assert.rejects(
     store.upsertRoute({
       host: "stripe.local-pipe.example.com",
-      target: "http://127.0.0.1:41001",
+      target: "http://localhost:41001",
     }),
     /ALLOWED_TARGET_HOSTS/,
   );
@@ -161,7 +159,7 @@ test("app serves dashboard and proxies tunnel routes", async () => {
     configPath: filePath,
     sshDefaults: {
       sshTarget: "default@example-vps",
-      remoteBindHost: "172.17.0.1",
+      remoteBindHost: "127.0.0.1",
       localHost: "127.0.0.1",
     },
     logger: silentLogger,

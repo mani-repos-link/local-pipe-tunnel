@@ -46,7 +46,7 @@ ssh -NT \
   -o ServerAliveInterval=30 \
   -o ServerAliveCountMax=3 \
   -o ExitOnForwardFailure=yes \
-  -R <bind-ip>:41001:127.0.0.1:3000 \
+  -R 127.0.0.1:41001:127.0.0.1:3000 \
   tunnel@example-vps
 ```
 

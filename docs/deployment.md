@@ -32,12 +32,11 @@ Example:
     {
       "id": "stripe-example",
       "host": "stripe.local-pipe.example.com",
-      "target": "http://host.docker.internal:41001",
+      "target": "http://127.0.0.1:41001",
       "enabled": true,
       "notes": "SSH reverse forward from localhost:3000",
       
       "sshTarget": "tunnel@example-vps",
-      "remoteBindHost": "172.18.0.1",
       "localHost": "127.0.0.1",
       "localPort": 3000,
       "createdAt": "2026-04-05T00:00:00.000Z",
@@ -53,7 +52,7 @@ Rules:
 - `target` must use `http://` or `https://`
 - `target` must not include embedded credentials or a query string
 - if `ALLOWED_TARGET_HOSTS` is set, the target hostname must be in that allowlist
-- `sshTarget`, `remoteBindHost`, `localHost`, and `localPort` are optional metadata used by the dashboard SSH generator
+- `sshTarget`, `localHost`, and `localPort` are optional metadata used by the dashboard SSH generator
 
 ## SSH Pattern
 
@@ -64,27 +63,24 @@ ssh -NT \
   -o ServerAliveInterval=30 \
   -o ServerAliveCountMax=3 \
   -o ExitOnForwardFailure=yes \
-  -R <bind-ip>:41001:127.0.0.1:3000 \
+  -R 127.0.0.1:41001:127.0.0.1:3000 \
   tunnel@example-vps
 ```
 
 Matching route:
 
 - Host: `stripe.local-pipe.example.com`
-- Target: `http://host.docker.internal:41001`
+- Target: `http://127.0.0.1:41001`
 - Local app: `127.0.0.1:3000`
 
 ### Remote Bind Host Detection
 
-`local-pipe` tries to avoid hardcoding a Docker host IP.
+In the recommended VPS deployment, `local-pipe` runs with Docker host networking. That keeps the SSH reverse-forward path simple:
 
-At startup it:
+- route target: `http://127.0.0.1:<remote-port>`
+- SSH reverse bind host: `127.0.0.1`
 
-1. uses `DEFAULT_REMOTE_BIND_HOST` if set
-2. otherwise detects the container gateway from `/proc/net/route`
-3. otherwise falls back to resolving `host.docker.internal`
-
-If detection still fails, set `DEFAULT_REMOTE_BIND_HOST` explicitly in `.env`.
+`DEFAULT_REMOTE_BIND_HOST` is therefore set to `127.0.0.1` by default in the Compose deployment.
 
 ### SSH Server Requirements
 
@@ -105,7 +101,7 @@ Main variables:
 - `LOG_HEALTHCHECKS`: log `/healthz` requests or not. Default `false`
 - `ALLOWED_TARGET_HOSTS`: comma-separated target host allowlist
 - `DEFAULT_SSH_TARGET`: default SSH destination shown in the dashboard
-- `DEFAULT_REMOTE_BIND_HOST`: optional override for VPS-side bind host
+- `DEFAULT_REMOTE_BIND_HOST`: VPS-side bind host for generated SSH commands. Default `127.0.0.1`
 - `DEFAULT_LOCAL_HOST`: default local host for generated commands
 
 See [`.env.example`](../.env.example) for the full list.
@@ -116,11 +112,11 @@ The main deploy file is [`compose.yml`](../compose.yml).
 
 Current defaults:
 
+- host networking on the VPS
 - non-root runtime user
 - bind-mounted `data/` directory
 - Compose-level healthcheck against `/healthz`
 - explicit Traefik routers
-- `host.docker.internal:host-gateway` mapping
 
 First deploy:
 

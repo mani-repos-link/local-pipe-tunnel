@@ -85,7 +85,7 @@
               </label>
               <label>
                 Target
-                <input name="target" id="route-target" placeholder="http://host.docker.internal:41001" required />
+                <input name="target" id="route-target" placeholder="http://127.0.0.1:41001" required />
               </label>
             </div>
             <label>
@@ -102,10 +102,6 @@
               <label>
                 Local port
                 <input name="localPort" id="route-local-port" type="number" min="1" max="65535" placeholder="3000" />
-              </label>
-              <label>
-                Remote bind host
-                <input name="remoteBindHost" id="route-remote-bind-host" placeholder="auto-detected from container gateway" />
               </label>
               <label>
                 Local host

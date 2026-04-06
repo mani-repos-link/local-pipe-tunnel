@@ -5,12 +5,11 @@ services:
       dockerfile: Dockerfile
     container_name: local-pipe
     restart: unless-stopped
+    network_mode: host
     user: "${LOCAL_PIPE_UID:-10001}:${LOCAL_PIPE_GID:-10001}"
     init: true
     label_file:
       - ./.traefik/private.labels
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     security_opt:
       - "no-new-privileges:true"
     cap_drop:
@@ -30,27 +29,18 @@ services:
       ADMIN_RATE_LIMIT_MAX: "${ADMIN_RATE_LIMIT_MAX:-60}"
       ADMIN_RATE_LIMIT_WINDOW_MS: "${ADMIN_RATE_LIMIT_WINDOW_MS:-60000}"
       LOG_HEALTHCHECKS: "${LOG_HEALTHCHECKS:-false}"
-      ALLOWED_TARGET_HOSTS: "${ALLOWED_TARGET_HOSTS:-host.docker.internal,127.0.0.1,localhost}"
+      ALLOWED_TARGET_HOSTS: "${ALLOWED_TARGET_HOSTS:-127.0.0.1,localhost}"
       MAX_ROUTES: "${MAX_ROUTES:-250}"
       DEFAULT_SSH_TARGET: "${DEFAULT_SSH_TARGET:-}"
-      DEFAULT_REMOTE_BIND_HOST: "${DEFAULT_REMOTE_BIND_HOST:-}"
+      DEFAULT_REMOTE_BIND_HOST: "${DEFAULT_REMOTE_BIND_HOST:-127.0.0.1}"
       DEFAULT_LOCAL_HOST: "${DEFAULT_LOCAL_HOST:-127.0.0.1}"
     volumes:
       - ./data:/app/data
     labels:
       traefik.enable: "true"
-      traefik.docker.network: "traefik"
-
       traefik.http.routers.local-pipe-dashboard.rule: "Host(`${ADMIN_HOST:-local-pipe.example.com}`)"
       traefik.http.routers.local-pipe-dashboard.entrypoints: "websecure"
       traefik.http.routers.local-pipe-dashboard.tls: "true"
       traefik.http.routers.local-pipe-dashboard.tls.certresolver: "letsencrypt"
       traefik.http.routers.local-pipe-dashboard.service: "local-pipe"
       traefik.http.services.local-pipe.loadbalancer.server.port: "${PORT:-8030}"
-    networks:
-      - traefik
-
-networks:
-  traefik:
-    external: true
-    name: traefik
