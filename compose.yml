@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: local-pipe
     restart: unless-stopped
+    # host networking allows local-pipe to reach SSH reverse tunnels on 127.0.0.1
     network_mode: host
     user: "${LOCAL_PIPE_UID:-10001}:${LOCAL_PIPE_GID:-10001}"
     init: true
@@ -29,7 +30,7 @@ services:
       ADMIN_RATE_LIMIT_MAX: "${ADMIN_RATE_LIMIT_MAX:-60}"
       ADMIN_RATE_LIMIT_WINDOW_MS: "${ADMIN_RATE_LIMIT_WINDOW_MS:-60000}"
       LOG_HEALTHCHECKS: "${LOG_HEALTHCHECKS:-false}"
-      ALLOWED_TARGET_HOSTS: "${ALLOWED_TARGET_HOSTS:-127.0.0.1,localhost}"
+      ALLOWED_TARGET_HOSTS: "${ALLOWED_TARGET_HOSTS:-}"
       MAX_ROUTES: "${MAX_ROUTES:-250}"
       DEFAULT_SSH_TARGET: "${DEFAULT_SSH_TARGET:-}"
       DEFAULT_REMOTE_BIND_HOST: "${DEFAULT_REMOTE_BIND_HOST:-127.0.0.1}"
@@ -43,4 +44,6 @@ services:
       traefik.http.routers.local-pipe-dashboard.tls: "true"
       traefik.http.routers.local-pipe-dashboard.tls.certresolver: "letsencrypt"
       traefik.http.routers.local-pipe-dashboard.service: "local-pipe"
-      traefik.http.services.local-pipe.loadbalancer.server.url: "http://${TRAEFIK_BACKEND_HOST:-host.docker.internal}:${PORT:-8030}"
+      # In network_mode: host, Traefik (if on a bridge) hits the host IP/localhost.
+      # 127.0.0.1 here refers to the host's loopback since we are in host mode.
+      traefik.http.services.local-pipe.loadbalancer.server.url: "http://127.0.0.1:${PORT:-8030}"

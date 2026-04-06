@@ -6,8 +6,7 @@
   "private": true,
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test",
-    "hash-password": "node scripts/hash-password.js"
+    "test": "node --test"
   },
   "engines": {
     "node": ">=20"

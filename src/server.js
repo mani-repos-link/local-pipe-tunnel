@@ -177,7 +177,6 @@ async function main() {
   const configPath = path.resolve(process.env.CONFIG_PATH || "./data/routes.json");
   const adminUsername = (await readSecret("ADMIN_USERNAME")).trim();
   const adminPassword = await readSecret("ADMIN_PASSWORD");
-  const adminPasswordHash = await readSecret("ADMIN_PASSWORD_HASH");
   const allowedTargetHosts = parseCsv("ALLOWED_TARGET_HOSTS");
   const maxRoutes = parseInteger("MAX_ROUTES", 250);
   const detectedRemoteBindHost = await detectRemoteBindHost(logger);
@@ -193,39 +192,18 @@ async function main() {
   );
   const adminRateLimitMax = parseNonNegativeInteger("ADMIN_RATE_LIMIT_MAX", 60);
 
-  if (adminPassword && adminPasswordHash) {
-    throw new Error(
-      "Set either ADMIN_PASSWORD or ADMIN_PASSWORD_HASH, not both.",
-    );
+  if (adminUsername && !adminPassword) {
+    throw new Error("ADMIN_USERNAME requires ADMIN_PASSWORD.");
   }
 
-  if (adminUsername && !adminPassword && !adminPasswordHash) {
-    throw new Error(
-      "ADMIN_USERNAME requires ADMIN_PASSWORD or ADMIN_PASSWORD_HASH.",
-    );
-  }
-
-  if (!adminUsername && (adminPassword || adminPasswordHash)) {
+  if (!adminUsername && adminPassword) {
     throw new Error("ADMIN_USERNAME is required when admin auth is enabled.");
-  }
-
-  if (adminPasswordHash) {
-    try {
-      verifyPasswordHash("", adminPasswordHash);
-    } catch (error) {
-      throw new Error(
-        `ADMIN_PASSWORD_HASH is invalid: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    }
   }
 
   const auth = {
     enabled: Boolean(adminUsername),
     username: adminUsername,
     password: adminPassword,
-    passwordHash: adminPasswordHash,
   };
 
   const store = new RouteStore(configPath, {
@@ -237,11 +215,6 @@ async function main() {
 
   if (!auth.enabled) {
     logger.warn("admin authentication is disabled", { adminHost });
-  } else if (!adminPasswordHash) {
-    logger.warn("plain-text admin password configured", {
-      adminHost,
-      recommendation: "Prefer ADMIN_PASSWORD_HASH or ADMIN_PASSWORD_HASH_FILE.",
-    });
   }
 
   const app = createLocalPipeApp({

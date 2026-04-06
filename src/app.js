@@ -361,7 +361,12 @@ async function proxyHttpRequest(req, res, route, requestContext, hostGatewayAddr
   });
 
   attachProxyError(proxyReq, res, requestContext);
-  req.pipe(proxyReq);
+  
+  if (req.method === "GET" || req.method === "HEAD" || req.method === "DELETE") {
+    proxyReq.end();
+  } else {
+    req.pipe(proxyReq);
+  }
 }
 
 function proxyWebSocket(
@@ -451,7 +456,6 @@ export function createLocalPipeApp({
     enabled: Boolean(adminUsername || adminPassword),
     username: adminUsername,
     password: adminPassword,
-    passwordHash: "",
   };
   const authEnabled = Boolean(authConfig.enabled);
   const rateState = new Map();
