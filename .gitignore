@@ -4,3 +4,4 @@ data/routes.json
 data/*.local.json
 .env
 .traefik/compose.private.yml
+.traefik/private.labels

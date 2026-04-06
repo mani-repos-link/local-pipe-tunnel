@@ -152,17 +152,21 @@ For another tunnel host, duplicate the sample router labels and change only the 
 
 If you run personal or project-specific tunnel hosts, do not add those labels directly to the main `compose.yml` in the open-source repo.
 
-Use a private override file instead:
+Use a private override file plus a private labels file instead:
 
 1. Copy [`.traefik/compose.private.example.yml`](../.traefik/compose.private.example.yml) to `.traefik/compose.private.yml`
-2. Add your private router labels there
-3. Keep `.traefik/compose.private.yml` untracked
+2. Copy [`.traefik/private.labels.example`](../.traefik/private.labels.example) to `.traefik/private.labels`
+3. Put your personal Traefik router labels in `.traefik/private.labels`
+4. Keep both real files untracked
 
 The repo already ignores that file:
 
 ```gitignore
 .traefik/compose.private.yml
+.traefik/private.labels
 ```
+
+The private override uses Docker Compose `label_file`, so you can also add extra local-only environment variables or other service overrides in `.traefik/compose.private.yml` without touching the public `compose.yml`.
 
 You have two clean ways to load it.
 
@@ -192,10 +196,12 @@ docker compose -f compose.yml -f .traefik/compose.private.yml up -d --build
 
 - it keeps private domains and router names out of git history
 - it merges cleanly into the existing `local-pipe` service
+- it keeps bulky private Traefik labels out of YAML
 - it uses standard Docker Compose file merging
-- it avoids abusing Compose `include`, which is meant for composing sub-projects, not for merging extra labels into the same service
+- it lets the same `.env` values apply to both Compose files
+- it avoids trying to use YAML anchors across files, which do not work the way Compose merge files do
 
-For this use case, a merge override is the clean solution. A nested file “called” from `compose.yml` is not the right Compose mechanism for extending the same service definition.
+For this use case, a merge override is the clean solution. A nested file “called” from `compose.yml` is not the right Compose mechanism for extending the same service definition, and YAML anchors such as `&service` are file-local rather than a cross-file extension system.
 
 ## Logging
 

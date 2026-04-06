@@ -1,0 +1,11 @@
+traefik.http.routers.local-pipe-test.rule=Host(`test.${ADMIN_HOST:-local-pipe.example.com}`)
+traefik.http.routers.local-pipe-test.entrypoints=websecure
+traefik.http.routers.local-pipe-test.tls=true
+traefik.http.routers.local-pipe-test.tls.certresolver=letsencrypt
+traefik.http.routers.local-pipe-test.service=local-pipe
+
+traefik.http.routers.local-pipe-api-preview.rule=Host(`api-preview.${ADMIN_HOST:-local-pipe.example.com}`)
+traefik.http.routers.local-pipe-api-preview.entrypoints=websecure
+traefik.http.routers.local-pipe-api-preview.tls=true
+traefik.http.routers.local-pipe-api-preview.tls.certresolver=letsencrypt
+traefik.http.routers.local-pipe-api-preview.service=local-pipe
