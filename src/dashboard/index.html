@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Local Pipe</title>
+    <link rel="stylesheet" href="/dashboard/styles.css" />
+    <script defer src="/dashboard/app.js"></script>
+  </head>
+  <body>
+    <div class="shell">
+      <section class="hero">
+        <div class="eyebrow">Local Pipe</div>
+        <div class="hero-grid">
+          <div class="panel meta">
+            <h1>Manual hosts, fast tunnel routing.</h1>
+            <p class="hero-copy">
+              This service sits behind Traefik, matches the request host, and proxies to the target saved in the JSON config.
+              Keep the Traefik routers explicit with <code>Host()</code> labels, keep the route mapping here, and optionally store SSH metadata so the dashboard can generate the exact tunnel command.
+            </p>
+            <div class="meta-list">
+              <div>Dashboard host: <code id="meta-admin-host">Loading…</code></div>
+              <div>Config file: <code id="meta-config-path">Loading…</code></div>
+              <div>Admin auth: <code id="meta-auth-enabled">Loading…</code></div>
+              <div>Default SSH destination: <code id="meta-ssh-target">Loading…</code></div>
+              <div>Default remote bind host: <code id="meta-remote-bind-host">Loading…</code></div>
+              <div>Default local host: <code id="meta-local-host">Loading…</code></div>
+            </div>
+          </div>
+          <div class="panel stats">
+            <div class="stat">
+              <strong id="enabled-count">0</strong>
+              <span>Enabled routes</span>
+            </div>
+            <div class="stat">
+              <strong id="disabled-count">0</strong>
+              <span>Disabled routes</span>
+            </div>
+            <div class="stat">
+              <strong id="total-count">0</strong>
+              <span>Total routes</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="toolbar">
+          <p>Each tunnel host still needs DNS and an explicit Traefik <code>Host()</code> router. The table below decides where that host proxies and, if you fill the SSH metadata, generates the tunnel command too.</p>
+          <div class="toolbar-actions">
+            <button class="secondary" type="button" id="reload-button">Reload JSON</button>
+            <button class="secondary" type="button" id="reset-button">Clear form</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="message" id="message"></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Host</th>
+                <th>Target</th>
+                <th>Tunnel</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="routes-body">
+              <tr>
+                <td colspan="5" class="route-meta">Loading routes...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="form-wrap">
+          <form id="route-form">
+            <input type="hidden" name="id" id="route-id" />
+            <div class="section-title">Route</div>
+            <div class="form-grid">
+              <label>
+                Host
+                <input name="host" id="route-host" placeholder="stripe.local-pipe.example.com" required />
+              </label>
+              <label>
+                Target
+                <input name="target" id="route-target" placeholder="http://host.docker.internal:41001" required />
+              </label>
+            </div>
+            <label>
+              Notes
+              <textarea name="notes" id="route-notes" placeholder="Optional operator note"></textarea>
+            </label>
+
+            <div class="section-title">SSH Generator</div>
+            <div class="form-grid">
+              <label>
+                SSH destination
+                <input name="sshTarget" id="route-ssh-target" placeholder="tunnel@example-vps" />
+              </label>
+              <label>
+                Local port
+                <input name="localPort" id="route-local-port" type="number" min="1" max="65535" placeholder="3000" />
+              </label>
+              <label>
+                Remote bind host
+                <input name="remoteBindHost" id="route-remote-bind-host" placeholder="auto-detected from container gateway" />
+              </label>
+              <label>
+                Local host
+                <input name="localHost" id="route-local-host" placeholder="127.0.0.1" />
+              </label>
+            </div>
+            <div class="hint">
+              If SSH destination and local port are set, the dashboard can generate the exact command for this route. Remote port is derived automatically from the target URL port.
+            </div>
+            <pre class="code-preview" id="ssh-preview">Complete the SSH fields to preview a command.</pre>
+
+            <label class="checkbox">
+              <input type="checkbox" name="enabled" id="route-enabled" checked />
+              Enable route immediately
+            </label>
+            <div class="toolbar-actions">
+              <button class="primary" type="submit" id="submit-button">Save route</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

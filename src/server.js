@@ -66,6 +66,80 @@ function parseCsv(name) {
     .filter(Boolean);
 }
 
+function parseBoolean(name, fallback) {
+  const raw = process.env[name];
+
+  if (!raw) {
+    return fallback;
+  }
+
+  const value = raw.trim().toLowerCase();
+
+  if (["1", "true", "yes", "on"].includes(value)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off"].includes(value)) {
+    return false;
+  }
+
+  throw new Error(`${name} must be a boolean value.`);
+}
+
+function decodeLinuxRouteHex(value) {
+  if (!/^[0-9a-fA-F]{8}$/.test(value)) {
+    return "";
+  }
+
+  const bytes = value.match(/../g);
+
+  if (!bytes) {
+    return "";
+  }
+
+  return bytes
+    .reverse()
+    .map((pair) => String(parseInt(pair, 16)))
+    .join(".");
+}
+
+async function detectContainerGateway(logger) {
+  try {
+    const contents = await readFile("/proc/net/route", "utf8");
+    const lines = contents.trim().split("\n").slice(1);
+
+    for (const line of lines) {
+      const columns = line.trim().split(/\s+/);
+
+      if (columns.length < 3) {
+        continue;
+      }
+
+      const destination = columns[1];
+      const gatewayHex = columns[2];
+
+      if (destination !== "00000000") {
+        continue;
+      }
+
+      const gateway = decodeLinuxRouteHex(gatewayHex);
+
+      if (gateway) {
+        logger.info("detected container network gateway", {
+          remoteBindHost: gateway,
+        });
+        return gateway;
+      }
+    }
+  } catch (error) {
+    logger.warn("failed to inspect /proc/net/route for gateway detection", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  return "";
+}
+
 async function detectRemoteBindHost(logger) {
   const configured = (process.env.DEFAULT_REMOTE_BIND_HOST || "").trim();
 
@@ -73,9 +147,15 @@ async function detectRemoteBindHost(logger) {
     return configured;
   }
 
+  const containerGateway = await detectContainerGateway(logger);
+
+  if (containerGateway) {
+    return containerGateway;
+  }
+
   try {
     const result = await dns.lookup("host.docker.internal", { family: 4 });
-    logger.info("detected remote bind host from host.docker.internal", {
+    logger.info("detected remote bind host from host.docker.internal fallback", {
       remoteBindHost: result.address,
     });
     return result.address;
@@ -101,6 +181,7 @@ async function main() {
   const allowedTargetHosts = parseCsv("ALLOWED_TARGET_HOSTS");
   const maxRoutes = parseInteger("MAX_ROUTES", 250);
   const detectedRemoteBindHost = await detectRemoteBindHost(logger);
+  const logHealthchecks = parseBoolean("LOG_HEALTHCHECKS", false);
   const sshDefaults = {
     sshTarget: (process.env.DEFAULT_SSH_TARGET || "").trim(),
     remoteBindHost: detectedRemoteBindHost,
@@ -173,6 +254,8 @@ async function main() {
       max: adminRateLimitMax,
     },
     sshDefaults,
+    hostGatewayAddress: detectedRemoteBindHost,
+    logHealthchecks,
     logger,
   });
 
@@ -195,6 +278,7 @@ async function main() {
       allowedTargetHosts,
       maxRoutes,
       sshDefaults,
+      logHealthchecks,
     });
   });
 

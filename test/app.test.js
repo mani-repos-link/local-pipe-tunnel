@@ -171,11 +171,30 @@ test("app serves dashboard and proxies tunnel routes", async () => {
 
   const dashboardResponse = await makeRequest(port, {
     host: "local-pipe.example.com",
-    pathName: "/api/state",
+    pathName: "/",
   });
   assert.equal(dashboardResponse.statusCode, 200);
-  assert.match(dashboardResponse.body, /stripe\.local-pipe\.example\.com/);
-  assert.match(dashboardResponse.body, /default@example-vps/);
+  assert.match(dashboardResponse.body, /\/dashboard\/styles\.css/);
+  assert.match(dashboardResponse.body, /\/dashboard\/app\.js/);
+  assert.match(
+    String(dashboardResponse.headers["content-security-policy"] || ""),
+    /script-src 'self'/,
+  );
+
+  const assetResponse = await makeRequest(port, {
+    host: "local-pipe.example.com",
+    pathName: "/dashboard/app.js",
+  });
+  assert.equal(assetResponse.statusCode, 200);
+  assert.match(assetResponse.body, /loadRoutes/);
+
+  const stateResponse = await makeRequest(port, {
+    host: "local-pipe.example.com",
+    pathName: "/api/state",
+  });
+  assert.equal(stateResponse.statusCode, 200);
+  assert.match(stateResponse.body, /stripe\.local-pipe\.example\.com/);
+  assert.match(stateResponse.body, /default@example-vps/);
 
   const proxyResponse = await makeRequest(port, {
     host: "stripe.local-pipe.example.com",

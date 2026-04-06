@@ -13,6 +13,12 @@ services:
       - "no-new-privileges:true"
     cap_drop:
       - ALL
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- \"http://127.0.0.1:${PORT:-8030}/healthz\" >/dev/null"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
     environment:
       PORT: "${PORT:-8030}"
       ADMIN_HOST: "${ADMIN_HOST:-local-pipe.example.com}"
@@ -21,6 +27,7 @@ services:
       ADMIN_PASSWORD: "${ADMIN_PASSWORD:-replace-this}"
       ADMIN_RATE_LIMIT_MAX: "${ADMIN_RATE_LIMIT_MAX:-60}"
       ADMIN_RATE_LIMIT_WINDOW_MS: "${ADMIN_RATE_LIMIT_WINDOW_MS:-60000}"
+      LOG_HEALTHCHECKS: "${LOG_HEALTHCHECKS:-false}"
       ALLOWED_TARGET_HOSTS: "${ALLOWED_TARGET_HOSTS:-host.docker.internal,127.0.0.1,localhost}"
       MAX_ROUTES: "${MAX_ROUTES:-250}"
       DEFAULT_SSH_TARGET: "${DEFAULT_SSH_TARGET:-}"

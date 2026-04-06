@@ -15,13 +15,10 @@ RUN addgroup -S -g 10001 localpipe \
   && chown -R 10001:10001 /app
 
 ENV NODE_ENV=production
-ENV PORT=8080
+ENV PORT=8030
 ENV CONFIG_PATH=/app/data/routes.json
-EXPOSE 8080
+EXPOSE 8030
 
 USER 10001:10001
-
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/healthz').then((res)=>{if(!res.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
 CMD ["node", "src/server.js"]

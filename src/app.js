@@ -4,7 +4,7 @@ import net from "node:net";
 import tls from "node:tls";
 import { randomUUID } from "node:crypto";
 
-import { renderDashboard } from "./dashboard.js";
+import { getDashboardAsset, getDashboardDocument } from "./dashboard.js";
 import { sanitizeHost } from "./store.js";
 import { verifyAdminCredentials } from "./security.js";
 
@@ -16,8 +16,8 @@ const DASHBOARD_CSP = [
   "frame-ancestors 'none'",
   "img-src 'self' data:",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self'",
+  "style-src 'self'",
 ].join("; ");
 
 const BASE_SECURITY_HEADERS = {
@@ -43,10 +43,10 @@ const HOP_BY_HOP_HEADERS = [
   "transfer-encoding",
 ];
 
-function makeAdminHeaders({ html = false } = {}) {
+function makeAdminHeaders({ html = false, cacheControl } = {}) {
   return {
     ...BASE_SECURITY_HEADERS,
-    ...ADMIN_CACHE_HEADERS,
+    ...(cacheControl ? { "cache-control": cacheControl } : ADMIN_CACHE_HEADERS),
     ...(html ? { "content-security-policy": DASHBOARD_CSP } : {}),
   };
 }
@@ -80,6 +80,15 @@ function text(res, statusCode, body, headers = {}) {
 function html(res, statusCode, body, headers = {}) {
   res.writeHead(statusCode, {
     "content-type": "text/html; charset=utf-8",
+    "content-length": Buffer.byteLength(body),
+    ...withDefaultHeaders(headers),
+  });
+  res.end(body);
+}
+
+function content(res, statusCode, body, contentType, headers = {}) {
+  res.writeHead(statusCode, {
+    "content-type": contentType,
     "content-length": Buffer.byteLength(body),
     ...withDefaultHeaders(headers),
   });
@@ -159,7 +168,7 @@ function requestIdFromHeader(header) {
   return randomUUID();
 }
 
-function createRequestContext(req, res, logger) {
+function createRequestContext(req, res, logger, options = {}) {
   const requestId = requestIdFromHeader(req.headers["x-request-id"]);
   const startedAt = process.hrtime.bigint();
   const context = {
@@ -179,7 +188,14 @@ function createRequestContext(req, res, logger) {
   res.setHeader("x-request-id", requestId);
 
   let logged = false;
+  const skipLogging =
+    options.logHealthchecks === false && context.path === "/healthz";
+
   const logRequest = () => {
+    if (skipLogging) {
+      return;
+    }
+
     if (logged) {
       return;
     }
@@ -286,12 +302,17 @@ function combinePaths(basePath, requestPath) {
   return `${cleanBase}${cleanRequest}` || "/";
 }
 
-function buildUpstreamUrl(route, req) {
+function buildUpstreamTarget(route, req, hostGatewayAddress) {
   const requestUrl = new URL(req.url || "/", "http://local-pipe.internal");
   const upstream = new URL(route.target);
   upstream.pathname = combinePaths(upstream.pathname, requestUrl.pathname);
   upstream.search = requestUrl.search;
-  return upstream;
+  const connectHostname =
+    upstream.hostname === "host.docker.internal" && hostGatewayAddress
+      ? hostGatewayAddress
+      : upstream.hostname;
+
+  return { upstreamUrl: upstream, connectHostname };
 }
 
 function attachProxyError(proxyReq, res, requestContext) {
@@ -309,14 +330,18 @@ function attachProxyError(proxyReq, res, requestContext) {
   });
 }
 
-async function proxyHttpRequest(req, res, route, requestContext) {
-  const upstreamUrl = buildUpstreamUrl(route, req);
+async function proxyHttpRequest(req, res, route, requestContext, hostGatewayAddress) {
+  const { upstreamUrl, connectHostname } = buildUpstreamTarget(
+    route,
+    req,
+    hostGatewayAddress,
+  );
   const client = upstreamUrl.protocol === "https:" ? https : http;
 
   const proxyReq = client.request(
     {
       protocol: upstreamUrl.protocol,
-      hostname: upstreamUrl.hostname,
+      hostname: connectHostname,
       port: upstreamUrl.port || (upstreamUrl.protocol === "https:" ? 443 : 80),
       method: req.method,
       path: `${upstreamUrl.pathname}${upstreamUrl.search}`,
@@ -339,18 +364,30 @@ async function proxyHttpRequest(req, res, route, requestContext) {
   req.pipe(proxyReq);
 }
 
-function proxyWebSocket(req, socket, head, route, requestContext, logger) {
-  const upstreamUrl = buildUpstreamUrl(route, req);
+function proxyWebSocket(
+  req,
+  socket,
+  head,
+  route,
+  requestContext,
+  logger,
+  hostGatewayAddress,
+) {
+  const { upstreamUrl, connectHostname } = buildUpstreamTarget(
+    route,
+    req,
+    hostGatewayAddress,
+  );
   const targetPort =
     Number(upstreamUrl.port) || (upstreamUrl.protocol === "https:" ? 443 : 80);
   const secure = upstreamUrl.protocol === "https:";
   const upstreamSocket = secure
     ? tls.connect({
-        host: upstreamUrl.hostname,
+        host: connectHostname,
         port: targetPort,
         servername: upstreamUrl.hostname,
       })
-    : net.connect(targetPort, upstreamUrl.hostname);
+    : net.connect(targetPort, connectHostname);
 
   upstreamSocket.on(secure ? "secureConnect" : "connect", () => {
     const headers = buildProxyHeaders(req, upstreamUrl, route, requestContext, {
@@ -407,6 +444,8 @@ export function createLocalPipeApp({
     remoteBindHost: "",
     localHost: "127.0.0.1",
   },
+  hostGatewayAddress = "",
+  logHealthchecks = false,
 }) {
   const authConfig = auth || {
     enabled: Boolean(adminUsername || adminPassword),
@@ -508,13 +547,32 @@ export function createLocalPipeApp({
 
     try {
       if (req.method === "GET" && requestUrl.pathname === "/") {
+        const dashboard = await getDashboardDocument();
         html(
           res,
           200,
-          renderDashboard({ adminHost, configPath, authEnabled, sshDefaults }),
-          makeAdminHeaders({ html: true }),
+          dashboard.body,
+          makeAdminHeaders({
+            html: true,
+            cacheControl: dashboard.cacheControl,
+          }),
         );
         return;
+      }
+
+      if (req.method === "GET") {
+        const asset = await getDashboardAsset(requestUrl.pathname);
+
+        if (asset) {
+          content(
+            res,
+            200,
+            asset.body,
+            asset.contentType,
+            makeAdminHeaders({ cacheControl: asset.cacheControl }),
+          );
+          return;
+        }
       }
 
       if (req.method === "GET" && requestUrl.pathname === "/api/state") {
@@ -597,11 +655,19 @@ export function createLocalPipeApp({
 
     requestContext.routeId = route.id;
     requestContext.target = route.target;
-    await proxyHttpRequest(req, res, route, requestContext);
+    await proxyHttpRequest(
+      req,
+      res,
+      route,
+      requestContext,
+      hostGatewayAddress,
+    );
   }
 
   async function requestListener(req, res) {
-    const requestContext = createRequestContext(req, res, logger);
+    const requestContext = createRequestContext(req, res, logger, {
+      logHealthchecks,
+    });
     const requestUrl = new URL(req.url || "/", "http://local-pipe.internal");
     const host = requestContext.host;
 
@@ -665,6 +731,7 @@ export function createLocalPipeApp({
       route,
       { requestId },
       logger,
+      hostGatewayAddress,
     );
   }
 
