@@ -38,10 +38,9 @@ services:
       - ./data:/app/data
     labels:
       traefik.enable: "true"
-      traefik.docker.network: "traefik"
       traefik.http.routers.local-pipe-dashboard.rule: "Host(`${ADMIN_HOST:-local-pipe.example.com}`)"
       traefik.http.routers.local-pipe-dashboard.entrypoints: "websecure"
       traefik.http.routers.local-pipe-dashboard.tls: "true"
       traefik.http.routers.local-pipe-dashboard.tls.certresolver: "letsencrypt"
       traefik.http.routers.local-pipe-dashboard.service: "local-pipe"
-      traefik.http.services.local-pipe.loadbalancer.server.port: "${PORT:-8030}"
+      traefik.http.services.local-pipe.loadbalancer.server.url: "http://${TRAEFIK_BACKEND_HOST:-host.docker.internal}:${PORT:-8030}"

@@ -17,14 +17,21 @@ It is designed for this flow:
 ## Quick Start
 
 1. Copy the env file and set your admin credentials.
-2. Start the service with Docker Compose.
-3. Add a DNS record and an explicit Traefik `Host()` router for each public tunnel host.
-4. Create the matching route in the dashboard.
-5. Open the SSH reverse tunnel from your local machine.
+2. If you want private per-host Traefik routers, copy `.traefik/compose.private.example.yml` to `.traefik/compose.private.yml` and `.traefik/private.labels.example` to `.traefik/private.labels`, then enable the override with `COMPOSE_FILE=compose.yml:.traefik/compose.private.yml`.
+3. Start the service with Docker Compose.
+4. Add a DNS record and an explicit Traefik `Host()` router for each public tunnel host.
+5. Create the matching route in the dashboard.
+6. Open the SSH reverse tunnel from your local machine.
 
 ```bash
 cp .env.example .env
 docker compose up -d --build
+```
+
+If Traefik returns `504 Gateway Timeout` for the dashboard while `curl http://127.0.0.1:8030/healthz` works on the VPS host, set `TRAEFIK_BACKEND_HOST` in `.env` to Traefik's actual bridge gateway:
+
+```bash
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.Gateway}}{{end}}' traefik
 ```
 
 Admin dashboard example:

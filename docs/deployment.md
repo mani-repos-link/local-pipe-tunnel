@@ -117,6 +117,7 @@ Current defaults:
 - bind-mounted `data/` directory
 - Compose-level healthcheck against `/healthz`
 - explicit Traefik routers
+- Traefik service URL points to `http://${TRAEFIK_BACKEND_HOST}:${PORT}` so Traefik can reach the host-networked app
 
 First deploy:
 
@@ -140,9 +141,71 @@ or set `LOCAL_PIPE_UID` and `LOCAL_PIPE_GID` in `.env` to match the host file ow
 The root compose already includes:
 
 - one dashboard router for `local-pipe.example.com`
-- one sample tunnel router for `stripe.local-pipe.example.com`
+- one explicit Traefik service URL that points to `http://${TRAEFIK_BACKEND_HOST}:${PORT}`
 
-For another tunnel host, duplicate the sample router labels and change only the router name and `Host()` rule.
+Additional tunnel routers belong in `.traefik/private.labels` or your own Traefik config.
+
+### Why `server.url` is used
+
+`local-pipe` runs with host networking so it can proxy to SSH reverse forwards on `127.0.0.1`.
+
+In that setup, the cleanest Traefik-side approach is to use an explicit Docker label:
+
+```yaml
+traefik.http.services.local-pipe.loadbalancer.server.url: "http://${TRAEFIK_BACKEND_HOST}:8030"
+```
+
+That makes Traefik call the VPS host directly instead of relying on Docker-network IP detection for the `local-pipe` container.
+
+The default value in [`.env.example`](../.env.example) is:
+
+```dotenv
+TRAEFIK_BACKEND_HOST=host.docker.internal
+```
+
+That works on many setups, but it is not reliable on every Linux host. On custom bridge networks, Docker may resolve `host.docker.internal` to the wrong gateway for the Traefik container.
+
+If Traefik returns `504 Gateway Timeout` while the app itself is healthy on the VPS host, discover Traefik's actual bridge gateway and set `TRAEFIK_BACKEND_HOST` explicitly:
+
+```bash
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.Gateway}}{{end}}' traefik
+```
+
+Then put that value into `.env`, for example:
+
+```dotenv
+TRAEFIK_BACKEND_HOST=172.18.0.1
+```
+
+Redeploy after changing it:
+
+```bash
+docker compose up -d --build --force-recreate
+```
+
+Verification from the VPS:
+
+```bash
+curl -v http://127.0.0.1:8030/healthz
+docker exec traefik wget -S -O- "http://${TRAEFIK_BACKEND_HOST}:8030/healthz"
+```
+
+If the first command works and the second still times out, your host firewall is likely dropping traffic from the custom Docker bridge interface. Allow the bridge interface Traefik is actually using, not just `docker0`.
+
+To find the bridge interface for the `traefik` Docker network:
+
+```bash
+docker network inspect traefik -f '{{.Id}}'
+```
+
+Docker bridge interfaces are usually named `br-<first-12-chars-of-network-id>`.
+
+Example firewall rules:
+
+```bash
+ufw allow in on br-xxxxxxxxxxxx to any port 8030 proto tcp
+iptables -I INPUT 1 -i br-xxxxxxxxxxxx -p tcp --dport 8030 -j ACCEPT
+```
 
 ## Private Traefik Routers
 
@@ -163,6 +226,8 @@ The repo already ignores that file:
 ```
 
 The private override uses Docker Compose `label_file`, so you can also add extra local-only environment variables or other service overrides in `.traefik/compose.private.yml` without touching the public `compose.yml`.
+
+Important: `private.labels` is a label file, not YAML. Use literal hostnames there and keep every line in `key=value` form. Do not use `${...}` interpolation inside that file.
 
 You have two clean ways to load it.
 
