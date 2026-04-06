@@ -9,3 +9,9 @@ traefik.http.routers.local-pipe-api-preview.entrypoints=websecure
 traefik.http.routers.local-pipe-api-preview.tls=true
 traefik.http.routers.local-pipe-api-preview.tls.certresolver=letsencrypt
 traefik.http.routers.local-pipe-api-preview.service=local-pipe
+
+traefik.http.routers.local-pipe-stripe.rule: "Host(`stripe.${ADMIN_HOST:-local-pipe.example.com}`)"
+traefik.http.routers.local-pipe-stripe.entrypoints: "websecure"
+traefik.http.routers.local-pipe-stripe.tls: "true"
+traefik.http.routers.local-pipe-stripe.tls.certresolver: "letsencrypt"
+traefik.http.routers.local-pipe-stripe.service: "local-pipe"
