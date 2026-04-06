@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "start": "node src/server.js",
+    "doctor": "sh scripts/doctor.sh",
     "test": "node --test"
   },
   "engines": {

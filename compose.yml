@@ -46,4 +46,4 @@ services:
       traefik.http.routers.local-pipe-dashboard.service: "local-pipe"
       # In network_mode: host, Traefik (if on a bridge) hits the host IP/localhost.
       # 127.0.0.1 here refers to the host's loopback since we are in host mode.
-      traefik.http.services.local-pipe.loadbalancer.server.url: "http://127.0.0.1:${PORT:-8030}"
+      traefik.http.services.local-pipe.loadbalancer.server.url: "http://${TRAEFIK_BACKEND_HOST:-host.docker.internal}:${PORT:-8030}"

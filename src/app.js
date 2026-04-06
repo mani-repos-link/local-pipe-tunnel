@@ -283,8 +283,11 @@ function buildProxyHeaders(req, upstreamUrl, route, requestContext, { preserveUp
     delete headers.upgrade;
   }
 
-  delete headers["content-length"];
-  headers.host = upstreamUrl.host;
+  const standardPort = upstreamUrl.protocol === "https:" ? 443 : 80;
+  headers.host =
+    upstreamUrl.port && Number(upstreamUrl.port) !== standardPort
+      ? `${upstreamUrl.hostname}:${upstreamUrl.port}`
+      : upstreamUrl.hostname;
   headers["x-forwarded-host"] = sanitizeHost(req.headers.host);
   headers["x-forwarded-proto"] = getOriginalProtocol(req);
   headers["x-forwarded-for"] = incomingForwardedFor

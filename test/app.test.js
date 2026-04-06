@@ -39,6 +39,7 @@ async function makeRequest(port, { host, pathName = "/", method = "GET", headers
         },
       },
       async (res) => {
+        // console.log(`[makeRequest] Response for ${method} ${pathName}: ${res.statusCode}`);
         const chunks = [];
         for await (const chunk of res) {
           chunks.push(chunk);
@@ -52,7 +53,10 @@ async function makeRequest(port, { host, pathName = "/", method = "GET", headers
       },
     );
 
-    req.on("error", reject);
+    req.on("error", (err) => {
+      // console.error('[makeRequest] Request error:', err);
+      reject(err);
+    });
 
     if (body) {
       req.end(body);

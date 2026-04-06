@@ -272,6 +272,43 @@ For this use case, a merge override is the clean solution. A nested file “call
 - logs are JSON lines to stdout/stderr
 - keep `LOG_HEALTHCHECKS=false` if you do not want `/healthz` poll noise
 
+## Doctor Script
+
+Use the bundled doctor script when the dashboard or tunnel is not behaving correctly.
+
+On the VPS host:
+
+```bash
+sh scripts/doctor.sh
+```
+
+Inside the running container:
+
+```bash
+docker exec local-pipe sh /app/scripts/doctor.sh
+```
+
+Host mode checks:
+
+- local-pipe and Traefik container status
+- local-pipe `/healthz` on the VPS host
+- Traefik backend label and reachability from inside the Traefik container
+- route file loading and enabled route summary
+- direct TCP reachability from local-pipe to each route target
+- missing loopback listeners that usually mean the SSH reverse tunnel is not open
+- public `https://...` checks for the dashboard and enabled routes
+
+Container mode keeps only the checks that make sense without Docker access.
+
+Useful overrides:
+
+- `APP_CONTAINER`: defaults to `local-pipe`
+- `TRAEFIK_CONTAINER`: defaults to `traefik`
+- `TIMEOUT`: HTTP/TCP timeout in seconds. Default `5`
+- `CHECK_PUBLIC=0`: skip public `https://...` checks
+- `PUBLIC_SCHEME=http`: use plain HTTP instead of HTTPS for public checks
+- `DOCTOR_MODE=container`: force reduced in-container checks
+
 ## Current Limits
 
 - TLS termination stays in Traefik

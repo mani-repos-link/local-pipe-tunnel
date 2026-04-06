@@ -34,6 +34,18 @@ If Traefik returns `504 Gateway Timeout` for the dashboard while `curl http://12
 docker inspect -f '{{range .NetworkSettings.Networks}}{{.Gateway}}{{end}}' traefik
 ```
 
+Run the deploy doctor on the VPS:
+
+```bash
+sh scripts/doctor.sh
+```
+
+Or inside the container:
+
+```bash
+docker exec local-pipe sh /app/scripts/doctor.sh
+```
+
 Admin dashboard example:
 
 ```text
@@ -63,6 +75,7 @@ ssh -NT \
 - [`.env.example`](./.env.example): environment variable template
 - [`.traefik/compose.private.example.yml`](./.traefik/compose.private.example.yml): example private Traefik router override
 - [`.traefik/private.labels.example`](./.traefik/private.labels.example): example private Traefik labels file
+- [`scripts/doctor.sh`](./scripts/doctor.sh): deployment diagnostics for Docker, Traefik, routes, and tunnel listeners
 - [`src/dashboard/`](./src/dashboard): dashboard HTML, CSS, and client JS
 - [`data/routes.example.json`](./data/routes.example.json): example route config
 - [`docs/deployment.md`](./docs/deployment.md): DNS, Traefik, SSH, and deployment notes
@@ -83,4 +96,10 @@ Run tests:
 
 ```bash
 npm test
+```
+
+Run the doctor locally:
+
+```bash
+npm run doctor
 ```

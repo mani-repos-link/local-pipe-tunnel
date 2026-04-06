@@ -6,7 +6,6 @@ import process from "node:process";
 
 import { createLocalPipeApp } from "./app.js";
 import { createLogger } from "./logger.js";
-import { verifyPasswordHash } from "./security.js";
 import { RouteStore } from "./store.js";
 
 const logger = createLogger({ service: "local-pipe" });
@@ -245,7 +244,6 @@ async function main() {
       adminHost,
       configPath,
       authEnabled: auth.enabled,
-      passwordHashEnabled: Boolean(adminPasswordHash),
       adminRateLimitMax,
       adminRateLimitWindowMs,
       allowedTargetHosts,
