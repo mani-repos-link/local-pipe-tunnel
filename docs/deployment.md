@@ -8,9 +8,7 @@ This project assumes:
 - each tunnel host is added manually in DNS
 - each tunnel host has an explicit Traefik `Host()` router
 
-__If you have already a dns-01 resolver, you might not some steps like. creating manually new subdomain (sub.local-pipe.example.com) and neither need to modify the docker compose and adds labels manually in docker compose service.__
-
-For this setup, you do not need a wildcard `dns-01` resolver (__if you have thats better__).
+For this setup, you do not need a wildcard `dns-01` resolver. If you already use wildcard DNS and wildcard certificates in your own infrastructure, you can automate more of this, but the default pattern here assumes explicit hosts.
 
 Example DNS:
 
@@ -149,6 +147,55 @@ The root compose already includes:
 - one sample tunnel router for `stripe.local-pipe.example.com`
 
 For another tunnel host, duplicate the sample router labels and change only the router name and `Host()` rule.
+
+## Private Traefik Routers
+
+If you run personal or project-specific tunnel hosts, do not add those labels directly to the main `compose.yml` in the open-source repo.
+
+Use a private override file instead:
+
+1. Copy [`.traefik/compose.private.example.yml`](../.traefik/compose.private.example.yml) to `.traefik/compose.private.yml`
+2. Add your private router labels there
+3. Keep `.traefik/compose.private.yml` untracked
+
+The repo already ignores that file:
+
+```gitignore
+.traefik/compose.private.yml
+```
+
+You have two clean ways to load it.
+
+### Option 1: `COMPOSE_FILE` in `.env`
+
+Because `.env` is already local-only, this is the simplest day-to-day setup:
+
+```dotenv
+COMPOSE_FILE=compose.yml:.traefik/compose.private.yml
+```
+
+Then your normal command keeps working:
+
+```bash
+docker compose up -d --build
+```
+
+### Option 2: explicit `-f` flags
+
+If you prefer not to set `COMPOSE_FILE`, run:
+
+```bash
+docker compose -f compose.yml -f .traefik/compose.private.yml up -d --build
+```
+
+### Why this pattern
+
+- it keeps private domains and router names out of git history
+- it merges cleanly into the existing `local-pipe` service
+- it uses standard Docker Compose file merging
+- it avoids abusing Compose `include`, which is meant for composing sub-projects, not for merging extra labels into the same service
+
+For this use case, a merge override is the clean solution. A nested file “called” from `compose.yml` is not the right Compose mechanism for extending the same service definition.
 
 ## Logging
 

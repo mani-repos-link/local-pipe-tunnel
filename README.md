@@ -54,6 +54,7 @@ ssh -NT \
 
 - [`compose.yml`](./compose.yml): Docker Compose service definition
 - [`.env.example`](./.env.example): environment variable template
+- [`.traefik/compose.private.example.yml`](./.traefik/compose.private.example.yml): example private Traefik router override
 - [`src/dashboard/`](./src/dashboard): dashboard HTML, CSS, and client JS
 - [`data/routes.example.json`](./data/routes.example.json): example route config
 - [`docs/deployment.md`](./docs/deployment.md): DNS, Traefik, SSH, and deployment notes
